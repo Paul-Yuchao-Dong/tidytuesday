@@ -5,26 +5,42 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(here)
+# library(jkmisc)
+library(patchwork)
+
+bird_collisions <- read_csv("bird_collisions.csv")
+
+```
+```{r}
+plot_data <- bird_collisions %>%
+  filter(locality == "CHI") %>% 
+  mutate(month = month(date),
+         year = year(date)) %>% 
+  unite("binomial_name", genus, species, sep = " ") %>% 
+  count(year, month, binomial_name) %>% 
+  complete(nesting(year, binomial_name), month = 1:12, fill = list(n = 0)) %>%  #combinatrics 
+  group_by(year, binomial_name) %>% 
+  mutate(percent = n/sum(n)) %>% #perc of this year
+  mutate(percent = ifelse(is.nan(percent), 0, percent))
+```
+```{r}
+flower <- ggplot(plot_data, aes(x = month, y = percent, fill = binomial_name)) +
+  geom_area(size = 0, position = position_dodge(), alpha = 0.2) +
+  scale_x_continuous(labels = month.abb, breaks = 1:12) +
+  scale_y_continuous(limits = c(0,1), breaks = c(0.5, 0.1)) +
+  scale_fill_viridis_d("Year", option = "plasma", direction = 1) +
+  scale_color_viridis_d(option = "plasma", direction = 1) +
+  guides(fill = guide_colorbar()) +
+  coord_polar() +
+  labs(x = NULL,
+       y = NULL,
+       title = "Overall") +
+  # theme_jk(dark = FALSE, grid = "X", strip_text_size = 10, plot_title_size = 14) +
+  theme(axis.text = element_blank(),
+        legend.position = "none")
+flower
 ```
 
-## GitHub Documents
-
-This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
-
-## Including Code
-
-You can include R code in the document as follows:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
