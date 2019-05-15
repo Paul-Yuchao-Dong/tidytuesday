@@ -26,6 +26,22 @@ plot_data <- bird_collisions %>%
   mutate(percent = n/sum(n)) %>% #perc of this year
   mutate(percent = ifelse(is.nan(percent), 0, percent))
 ```
+```{r, fig.width = 13, fig.height = 10}
+ggplot(plot_data, aes(x = month, y = percent, fill = binomial_name)) +
+  geom_area(size = 0, position = position_dodge(), alpha = 0.2) +
+  scale_x_continuous(labels = month.abb, breaks = 1:12)+
+  scale_fill_viridis_d("Year", option = "plasma", direction = 1) +
+  scale_color_viridis_d(option = "plasma", direction = 1) +
+  labs(x = NULL,
+       y = NULL,
+       title = "Overall")+
+  coord_polar()+
+    theme(axis.text = element_blank(),
+        legend.position = "none")
+
+```
+
+
 ```{r}
 flower <- ggplot(plot_data, aes(x = month, y = percent, fill = binomial_name)) +
   geom_area(size = 0, position = position_dodge(), alpha = 0.2) +
