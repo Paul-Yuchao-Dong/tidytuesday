@@ -1,0 +1,20 @@
+---
+title: "simpsons_guests"
+author: "Paul Dong"
+date: "2019/9/9"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+simpsons <- readr::read_delim("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-08-27/simpsons-guests.csv", delim = "|", quote = "")
+```
+
+```{r}
+
+```
+
