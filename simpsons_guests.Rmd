@@ -51,11 +51,30 @@ Has the frequency of guest stars changed with time?
 simpsons %>% 
   separate_rows(role, sep = ";\\s+") %>% 
   add_count(role) %>% 
-  filter(n>10) %>% 
-  count(season, role) %>% 
+  filter(n>8) %>% 
+  count(season = parse_number(season), role) %>% 
+  mutate(role = fct_reorder(role, -n, sum)) %>% 
   ggplot(aes(season, n)) +
   geom_col()+
-  facet_wrap(~role, ncol = 1)
+  facet_wrap(~role)
 ```
 
+```{r}
+simpsons_dataset <- read_csv(here::here("data", "simpsons_dataset.csv")) %>% 
+  select(role = raw_character_text, line = spoken_words)
+   
+```
+```{r}
+simpsons_dataset %>% 
+  count(role, sort = T) %>% 
+  semi_join(simpsons, by = "role")
+```
+```{r}
+(guest_processed <- simpsons %>% 
+   mutate(role = ifelse(self, guest_star, role)))
+
+simpsons %>% 
+  count(role, sort = T) %>% 
+  anti_join(simpsons_dataset, by = "role")
+```
 

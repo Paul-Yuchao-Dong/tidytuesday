@@ -1,0 +1,303 @@
+---
+title: "advent_of_code_captcha"
+author: "Paul Dong"
+date: "2019/9/10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+The captcha requires you to review a sequence of digits (your puzzle input) and
+find the sum of all digits that match the next digit in the list. The list is
+circular, so the digit after the last digit is the first digit in the list.
+
+For example:
+    
+- 1122 produces a sum of 3 (1 + 2) because the first digit (1) matches the 
+second digit and the third digit (2) matches the fourth digit.
+- 1111 produces 4 because each digit (all 1) matches the next.
+- 1234 produces 0 because no digit matches the next.
+- 91212129 produces 9 because the only digit that matches the next one is 
+the last digit, 9.
+
+```{r sol1}
+# parse input
+input_tidy <- function(input){
+  str_split(input,"") %>% 
+    unlist %>% 
+    parse_number
+}
+
+compare <- function(input){
+  tmp <- input_tidy(input) %>% 
+    tibble(original = .) 
+  tmp <- tmp %>% 
+    mutate(lagged = lead(original, default = .$original[[1]])) 
+  tmp <- tmp %>% 
+    mutate(compare = original == lagged) %>% 
+    summarise(sum = sum(compare, na.rm = T)) %>% 
+    pull(sum) %>% 
+    .[[1]]
+  tmp
+}
+```
+
+```{r test_sol1}
+input_tidy("1122")
+input_tidy("1111")
+
+compare("1122")
+compare("1111")
+compare("1234")
+compare("91212129")
+
+```
+
+Now, instead of considering the next digit, it wants you to consider the digit
+halfway around the circular list. That is, if your list contains 10 items, only
+include a digit in your sum if the digit 10/2 = 5 steps forward matches it.
+Fortunately, your list has an even number of elements.
+
+For example:
+
+- 1212 produces 6: the list contains 4 items, and all four digits match the
+digit 2 items ahead.
+- 1221 produces 0, because every comparison is between a 1 and a 2.
+- 123425 produces 4, because both 2s match each other, but no other digit has 
+a match.
+- 123123 produces 12.
+- 12131415 produces 4.
+
+```{r}
+input_tidy <- function(input){
+  str_split(input,"") %>% 
+    unlist %>% 
+    parse_number
+}
+
+compare <- function(input){
+  tmp <- input_tidy(input) %>% 
+    tibble(original = .) 
+  steps <- nrow(tmp) / 2
+  tmp <- tmp %>% 
+    mutate(lagged = lead(original, steps))
+  tmp$lagged[(steps+1):nrow(tmp)] <- tmp$original[1:steps]
+  tmp <- tmp %>% 
+    mutate(compare = original == lagged) %>% 
+    summarise(sum = sum(compare)) %>% 
+    pull(sum) %>% 
+    .[[1]]
+  tmp
+}
+```
+```{r}
+compare("1212")
+compare("1221")
+compare("123425")
+compare("123123")
+compare("12131415")
+```
+The spreadsheet consists of rows of apparently-random numbers. To make sure the
+recovery process is on the right track, they need you to calculate the
+spreadsheet's checksum. For each row, determine the difference between the
+largest value and the smallest value; the checksum is the sum of all of these
+differences.
+
+For example, given the following spreadsheet:
+
+5 1 9 5
+7 5 3
+2 4 6 8
+
+The first row's largest and smallest values are 9 and 1, and their difference 
+is 8.
+The second row's largest and smallest values are 7 and 3, and their difference
+is 4.
+The third row's difference is 6.
+In this example, the spreadsheet's checksum would be 8 + 4 + 6 = 18.
+
+```{r}
+data <- list(c(5, 1, 9, 5),
+              c(7, 5, 3),
+              c(2, 4, 6, 8))
+```
+
+```{r sol2}
+
+max_min <- function(d){
+  max(d) - min(d)
+}
+
+checksum <- function(data){
+  map_dbl(data, max_min) %>% sum
+}
+```
+
+```{r test2}
+checksum(data)
+```
+
+It sounds like the goal is to find the only two numbers in each row where one evenly
+divides the other - that is, where the result of the division operation is a whole
+number. They would like you to find those numbers on each line, divide them, and add up
+each line's result.
+
+For example, given the following spreadsheet:
+
+5 9 2 8
+9 4 7 3
+3 8 6 5
+In the first row, the only two numbers that evenly divide are 8 and 2; the result of
+this division is 4.
+In the second row, the two numbers are 9 and 3; the result is 3.
+In the third row, the result is 2.
+In this example, the sum of the results would be 4 + 3 + 2 = 9.
+
+What is the sum of each row's result in your puzzle input?
+```{r sol2a}
+
+data <- list("5 9 2 8", "9 4 7 3", "3 8 6 5")
+
+data <- data %>%  
+  map(~ str_split(.x," ") %>% unlist) %>% 
+  map(parse_number)
+
+even_divide <- function(d){
+  d <- sort(d)
+  l <- length(d)
+  for(i in 1:(l-1)){
+    divider <- d[i]
+    dividee <- d[(i+1):l]
+    r <- dividee / divider
+    for (r_i in r){
+      if (r_i == round(r_i)){
+        return(r_i)
+      }
+    }
+  }
+}
+
+checksum <- function(data){
+  map_dbl(data, even_divide) %>% sum
+}
+```
+
+```{r test2a}
+checksum(data)
+```
+```{r}
+data %>% as.matrix
+which.max(data %>% array)
+```
+
+
+You come across an experimental new kind of memory stored on an infinite two-dimensional
+grid.
+
+Each square on the grid is allocated in a spiral pattern starting at a location marked 
+1 and then counting up while spiraling outward. For example, the first few squares are
+allocated like this:
+
+17  16  15  14  13
+18   5   4   3  12
+19   6   1   2  11
+20   7   8   9  10
+21  22  23---> ...
+While this is very space-efficient (no squares are skipped), requested data must be
+carried back to square 1 (the location of the only access port for this memory system)
+by programs that can only move up, down, left, or right. They always take the shortest
+path: the Manhattan Distance between the location of the data and square 1.
+
+For example:
+
+Data from square 1 is carried 0 steps, since it's at the access port.
+Data from square 12 is carried 3 steps, such as: down, left, left.
+Data from square 23 is carried only 2 steps: up twice.
+Data from square 1024 must be carried 31 steps.
+How many steps are required to carry the data from the square identified in your puzzle
+input all the way to the access port?
+
+```{r}
+Register <- R6::R6Class("Register", list(
+  value = NULL,
+  goal = NULL,
+  fin_i = NULL,
+  fin_j = NULL,
+  i = NULL,
+  j = NULL,
+  initialize = function(value, goal, i, j){
+    self$value <-  value
+    self$goal <- goal
+    self$i <- i
+    self$j <- j
+    invisible(self)
+  },
+  increase = function() {
+    if(self$value == self$goal) {
+      self$fin_i = self$i
+      self$fin_j = self$j
+    }
+    self$value <- self$value + 1 
+    invisible(self)
+  }
+))
+```
+
+```{r}
+calc_steps <- function(n){
+  # an issue with the end of the series
+  n_sqrt <- n %>% sqrt
+  if (n_sqrt == round(n_sqrt) && (n_sqrt%%2!=0)) return (n_sqrt - 1)
+  
+  r_max_1 <- n %>% sqrt %>% floor #r_max - 1
+  if(r_max_1%%2==0) r_max_1 <- r_max_1 - 1
+  r_max <- r_max_1 + 2 # size of the matrix
+  
+  M <- matrix(NA, nrow = r_max, ncol = r_max) # for ease of debugging
+  
+  value <- r_max_1 ^ 2 + 1 # start from the outermost layer
+  init_i <- r_max - 1
+  init_j <- r_max
+  
+  reg <- Register$new(value, n, init_i, init_j)
+  
+  for(iter in reg$i:1){
+    reg$i <- iter
+    M[reg$i,reg$j] <- reg$value
+    reg$increase()
+  }
+  
+  for(iter in (reg$j-1):1){
+    reg$j <- iter
+    M[reg$i,reg$j] <- reg$value
+    reg$increase()
+  }
+  
+  for(iter in 2:r_max){
+    reg$i <- iter
+    M[reg$i,reg$j] <- reg$value
+    reg$increase()
+  }
+  
+  for(iter in 2:r_max){
+    reg$j <- iter
+    M[reg$i,reg$j] <- reg$value
+    reg$increase()
+  }
+  
+  c_i <- ceiling(r_max / 2)
+  c_j <- ceiling(r_max / 2)
+  
+  result <- abs(reg$fin_i - c_i) + abs(reg$fin_j - c_j)
+  result
+}
+```
+Location of the center
+```{r}
+calc_steps(1)
+```
+
+
