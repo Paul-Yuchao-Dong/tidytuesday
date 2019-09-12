@@ -1,0 +1,108 @@
+---
+title: "expected_value_inequality"
+author: "Paul Dong"
+date: "2019/9/12"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DescTools)
+library(tidyverse)
+theme_set(theme_light())
+```
+
+# Problem
+suppose you have a bet 50% chance you get 160% of your investment back and 50% chance you lose half of your investment.
+
+Mainstream theories would encourage you to take it. As expected value = `r (1.6 + 0.5) /2` > 1
+
+But I would argue against it as `r sqrt(1.6 * 0.5)` < 1
+
+scholarly discussion: 
+[Ergodicity Economics](https://ergodicityeconomics.files.wordpress.com/2018/06/ergodicity_economics.pdf)
+
+# Approach 1
+
+Let's say 1,000 people took the bet and see the result.
+
+```{r app_1}
+set.seed(123)
+N <- 1000
+sample_1 <- sample(c(1.6, 0.5), N, replace = T)
+hist(sample_1)
+```
+and the median person seems to be making money median(sample_1) =  `r median(sample_1)`, as well as the average person mean(sample_1) = `r mean(sample_1)`, yet the inequality of the original homogeneous population had developed inequality sd(sample_1) = `r sd(sample_1)`
+
+# Approach 2
+Now if we took another look at this from a different perspective. In life we rely on heuristics to make decisions. Some of those heuristics have an implicit assumption, if we have to do this choice many times in my life what would I do? One could argue the preferences of most of us were developed under the repeated transaction assumption. 
+
+should one make the bet under the repeated transaction assumption?
+
+```{r app_2}
+set.seed(123)
+N <- 1000
+M <- 10 # suppose 30 should be enough?
+sample_2 <- sample(c(1.6, 0.5), N*M, replace = T)
+sample_2 <- matrix(sample_2, nrow = N)
+result <- apply(sample_2, 1, prod)
+```
+```{r}
+resuslt_tbl <- result %>% 
+  tibble(w = .) 
+
+(
+  p <- resuslt_tbl %>% 
+    ggplot(aes(w))+
+    geom_histogram(aes(y = ..density..), binwidth = 0.2)+
+    geom_density()
+)
+
+```
+And the percentage of people who lost 50% of their wealth is `r mean(result<=0.5)`.
+
+While on the whole the average of the wealth is still increasing `r mean(result)`, the inequality had reached maddening levels sd(result) = `r sd(result)` a gini coef of `r Gini(result)`
+
+Median of the population is no longer better off `r median(result)`, in fact a median person would have lost over `r median(result) - 1`!
+
+A Lorenz curve is better at visualizing the equality quantified by the Gini coef.
+
+```{r}
+tibble(res = sort(result), ori = 1, x = 1/N) %>%
+  mutate(index = cumsum(x),
+         y = cumsum(res) / sum(result),
+         equal = index
+         ) %>%
+  select(index, y, equal) %>%
+  gather(series, value, -index) %>% 
+  ggplot(aes(index,value, fill = series))+
+  geom_area(position = "identity", show.legend = F)+
+  coord_equal(expand = F) +
+  # geom_abline(slope = 1, intercept = 0)+
+  labs(
+    title = "Lorenz Curve",
+    subtitle = "Gini coef = A / 0.5",
+    x = "Cumulative share of people from lowest to highest of wealth",
+    y = "Cumulative share of wealth"
+    )+
+  scale_y_continuous(position = "right")+
+  theme(
+    axis.title.x = element_text(),
+    axis.title.y.right = element_text(angle = 90),
+    axis.text = element_blank(),
+    panel.grid = element_blank(),
+    axis.line = element_blank()
+  )+
+  annotate("text", label = "A", x = 0.7, y = 0.4, size = 10)
+  
+
+  
+```
+
+What about Kelly's criterion?
+
+it seems it also maximized the ensemble expectation.
+
+
