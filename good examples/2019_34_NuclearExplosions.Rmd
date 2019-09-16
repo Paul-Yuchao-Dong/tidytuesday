@@ -21,6 +21,7 @@ library(tidyverse)
 library(sf)
 library(LaCroixColoR)
 library(patchwork)
+library(Cairo)
 
 ## ggplot theme updates
 source(here::here("theme", "tidy_grey.R"))
@@ -203,10 +204,11 @@ caption <- ggplot(data.frame(x = 1:2, y = 1:10)) +
 ```
 
 ```{r full-panel, fig.width = 14, fig.height = 6.4}
-title + goode + caption + plot_layout(widths = c(0, 1, 0), nrow = 1)
+p <- title + goode + caption + plot_layout(widths = c(0, 1, 0), nrow = 1)
 
-ggsave(here::here("plots", "2019_34", "2019_34_NuclearExplosions.pdf"), 
-       width = 14, height = 6.4, device = cairo_pdf)
+p
+ggsave(here::here("plots", "2019_34", "2019_34_NuclearExplosions.pdf"),
+  width = 14, height = 6.4, device = cairo_pdf)
 ```
 
 ***
