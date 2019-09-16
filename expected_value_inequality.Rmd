@@ -105,4 +105,70 @@ What about Kelly's criterion?
 
 it seems it also maximized the ensemble expectation.
 
+```{r}
+
+p <- 0.5
+b <- (1.6-0.5) / 0.5
+
+f <- ((b * p) - (1-p))/b
+
+set.seed(123)
+N <- 1000
+M <- 30 # suppose 30 should be enough?
+
+sample_3 <- sample(c(1.6, 0.5), N*M, replace = T)
+sample_3 <- matrix(sample_3, nrow = N)
+result <- matrix(1, nrow = N, ncol = M)
+for (i in 2:M){
+  result[,i] <- result[,i-1] * (1-f) + f*(result[,i-1] * sample_3[,i-1])
+}
+
+```
+```{r}
+mean(result[,M])
+median(result[,M])
+mean(result[,M]<1)
+sd(result[,M])
+Gini(result[,M])
+hist(result[,M])
+
+```
+
+```{r}
+tibble(res = sort(result[,M]), ori = 1, x = 1/N) %>%
+  mutate(index = cumsum(x),
+         y = cumsum(res) / sum(result[,M]),
+         equal = index
+         ) %>%
+  select(index, y, equal) %>%
+  gather(series, value, -index) %>% 
+  ggplot(aes(index,value, fill = series))+
+  geom_area(position = "identity", show.legend = F)+
+  coord_equal(expand = F) +
+  # geom_abline(slope = 1, intercept = 0)+
+  labs(
+    title = "Lorenz Curve",
+    subtitle = "Gini coef = A / 0.5",
+    x = "Cumulative share of people from lowest to highest of wealth",
+    y = "Cumulative share of wealth"
+    )+
+  scale_y_continuous(position = "right")+
+  theme(
+    axis.title.x = element_text(),
+    axis.title.y.right = element_text(angle = 90),
+    axis.text = element_blank(),
+    panel.grid = element_blank(),
+    axis.line = element_blank()
+  )+
+  annotate("text", label = "A", x = 0.6, y = 0.4, size = 10)
+```
+
+```{r}
+result[,M] %>% 
+  sort %>%
+  { . / sum(result[,M])} %>% 
+  cumsum %>% 
+  { .>0.9} %>% 
+  which.max
+```
 
