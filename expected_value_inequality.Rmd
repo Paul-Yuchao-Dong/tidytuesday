@@ -108,9 +108,9 @@ it seems it also maximized the ensemble expectation.
 ```{r}
 
 p <- 0.5
-b <- (1.6-0.5) / 0.5
+b <- (1.6- 1) / 0.5
 
-f <- ((b * p) - (1-p))/b
+f <- (b - 1)/2/b/p
 
 set.seed(123)
 N <- 1000
